@@ -1,0 +1,27 @@
+html, body {
+    box-sizing: border-box;
+    font-size: 10px;
+    padding: 0;
+    margin: 0;
+    font-family: Verdana, Geneva, sans-serif;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+    font-size: inherit;
+}
+
+body, h1, h2, h3, h4, h5, h6, p, ol, ul {
+    margin: 0;
+    padding: 0;
+    font-weight: normal;
+}
+
+ol, ul {
+    list-style: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}

@@ -1,0 +1,243 @@
+@import './reset.scss';
+// @import '~milligram/src/milligram';
+// @import '~@mdi/font/scss/materialdesignicons.scss';
+
+/* colors */
+$white: #fff;
+$border-color: #e4e4e4;
+$panel-bg-color: #f6f6f6;
+
+$top-toolbar-height: 44px;
+$left-toolbar-width: 40px;
+$prop-panel-width: 220px;
+
+$text-color: #666;
+$text-color-light: #999;
+$text-color-dark: #333;
+$active-color: #00b894;
+
+
+
+.top-toolbar, .left-toolbar, .prop-panel{
+    position: fixed;
+    background-color: $panel-bg-color;
+    z-index: 1000;
+}
+
+.top-toolbar{
+    top: 0;
+    left: 0;
+    height: $top-toolbar-height;
+    width: 100%;
+    border-bottom: solid 2px $border-color;
+}
+
+.left-toolbar{
+    top: $top-toolbar-height;
+    left: 0;
+    width: $left-toolbar-width;
+    height: calc(100% - #{$top-toolbar-height});
+}
+
+.prop-panel{
+    top: $top-toolbar-height;
+    right: 0;
+    width: $prop-panel-width;
+    height: calc(100% - #{$top-toolbar-height});
+}
+
+
+.drawing-board{
+    width: 100vw;
+    height: 100vh;
+    background-color: $border-color;
+}
+
+.widget{
+
+    border-bottom: solid 2px $border-color;
+
+    &-title{
+        text-transform: uppercase;
+        color: $text-color-light;
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    .widget-header{
+        padding: 10px;
+    }
+
+    .widget-body{
+        padding: 10px;
+    }
+}
+
+.btn-icon{
+    padding: 2px;
+    text-align: center;
+    line-height: 100%;
+    display: inline-block;
+    font-size: 1.6rem;
+
+    .mdi{
+        line-height: 100%
+    }
+}
+
+.btn{
+    padding: 5px;
+    background-color: $white;
+    border: solid 1px $border-color;
+}
+
+.flex-btn-group{
+    display: flext;
+    justify-content: space-between;
+}
+
+.btn-group{
+    display: flex;
+    .btn{
+        border-left: 0;
+    }
+
+    .btn:first-child{
+        border-radius: 5px 0 0 5px;
+        border: solid 1px $border-color;
+    }
+
+    .btn:last-child{
+        border-radius: 0 5px 5px 0;
+    }
+}
+
+.form-group{
+    display: flex;
+
+    label{
+        text-transform: uppercase;
+        color: $text-color-light;
+        font-size: 9px;
+        font-weight: bold;
+        padding: 5px 7px 5px 0;
+        flex-grow: 0;
+    }
+        input[type="text"], input[type="number"], select{
+            padding: 3px 0px;
+            border-radius: 0;
+            border: 0;
+            border-bottom: solid 1px black;
+            height: 25px;
+            margin-bottom: 10px;
+            font-size: 10px;
+            padding: 3px;
+        }
+
+        .select-wrapper{
+            position: relative;
+            &::before{
+            display: block;
+            content: "\2304";
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            }
+        }
+
+        select{
+            -webkit-appearance: none;
+    -moz-appearance: none;
+        }
+
+}
+
+
+.mr-10{
+    margin-right: 10px;
+}
+
+.ml-10{
+    margin-left: 10px;
+}
+
+.d-flex{
+    display: flex;
+}
+
+.d-inline-block{
+    display: inline-block;
+}
+
+.flex-1{
+    flex: 1;
+}
+
+.float-left{
+    float: left;
+}
+
+.clearfix::after{
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.row{
+    display: flex;
+}
+
+.size-widget{
+    .column{
+        width: 33%;
+    }
+
+    input{
+        width: 70%;
+    }
+}
+
+
+.text-widget{
+    .font-dropdown{
+        width: 100%;
+        flex-grow: 1;
+    }
+
+    .font-size{
+        padding-left: 7px;
+
+        input{
+            width: 30px;
+        }   
+    }
+}
+
+
+.appearance-widget{
+    .prop-row{
+        
+    }
+}
+
+.left-toolbar{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    .item{
+        width: $left-toolbar-width;
+        height: $left-toolbar-width;
+
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: $text-color;
+
+        &.active{
+            color: $active-color;
+        }
+    }
+}
