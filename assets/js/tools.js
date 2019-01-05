@@ -158,11 +158,18 @@ function squarePoint(anchor, point){
   return point;
 }
 
+var SELECTION_STATE = {
+  DEFAULT: 'default',
+  SELECT: 'select',
+  RESIZE: 'resize',
+  MOVE: 'move'
+};
+
 function SelectionTool(){
   this.tool = new Tool();
   this.bindEvent();
-  this.state = 'idle'; // idle, select, resize, move
-  this.selectedItem = null;
+  this.state = 'default'; // default, select, resize, move
+  this.selectedItems = [];
   return this.tool;
 }
 
@@ -174,13 +181,9 @@ SelectionTool.prototype = {
     this.tool.onMouseUp = this.onMouseUp.bind(this)
   },
   onMouseDown: function(event){
-    // var hitItem = paper.project.getItems({
-    //   match: function(item) {
-    //     return item.strokeBounds.contains(event.point);
-    //   }
-    // }).pop();
 
-    // this.setSelected(hitItem);
+    this.state = SELECTION_STATE.SELECT;
+
     var hitOptions = {
 		  segments: true,
 		  stroke: true,
@@ -188,20 +191,50 @@ SelectionTool.prototype = {
 		  tolerance: 5
 	  };
 	  var hitResult = paper.project.hitTest(event.point, hitOptions);
-	  if (hitResult) {
-		  this.setSelected(hitResult.item)
+
+    if(hitResult){
+	  if (!hitResult.item.selected){
+        if(Key.isDown('control')){
+		      this.addSelectedItem(hitResult.item);
+        }else{
+          this.deselectAll();
+          this.addSelectedItem(hitResult.item);
+        }
+    }
+    }
+  if(!hitResult){
+      this.deselectAll();
     }
   },
-  onMouseDrag: function(event){
 
+  onMouseDrag: function(event){
+    if(this.selectedItems.length > 0){
+      if(this.state == SELECTION_STATE.SELECT){
+        this.translateSelected(event.delta);
+      }
+    }
   },
+
   onMouseUp: function(event){
-    
+    this.state = SELECTION_STATE.DEFAULT;
   },
-  setSelected: function(item){
+
+  addSelectedItem: function(item){
+    if(item){
+      this.selectedItems.push(item);
+      item.selected = true;
+    }
+  },
+
+  translateSelected: function(delta){
+    for(var i = 0, len = this.selectedItems.length; i < len; i++){
+      this.selectedItems[i].translate(delta);
+    }
+  },
+
+  deselectAll: function(){
     paper.project.deselectAll();
-    this.selectedItem = item;
-    item.selected = true;
+    this.selectedItems = [];
   }
 }
 
