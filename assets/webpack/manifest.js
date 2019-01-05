@@ -57,7 +57,9 @@ const outputFiles = {
 // --------------------
 
 const entries = {
-  app: 'index.js'
+  app: 'index.js',
+  core: 'core.js',
+  canvas_script: 'canvas_script.js'
 }
 
 // -----------------

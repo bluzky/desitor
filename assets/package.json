@@ -54,7 +54,8 @@
   },
   "dependencies": {
     "@mdi/font": "^3.3.92",
-    "milligram": "^1.3.0"
+    "milligram": "^1.3.0",
+    "paper": "^0.12.0"
   },
   "prettier": {
     "overrides": [

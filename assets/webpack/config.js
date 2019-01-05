@@ -55,14 +55,12 @@ var optimization = {
     namedChunks: true,
     nodeEnv: 'production',
     splitChunks: {
-      chunks: 'all',
-      name: false,
       cacheGroups: {
         commons: {
           test: /[\\/]node_modules[\\/]/,
           name: 'commons',
           chunks: 'all',
-          // chunks: 'initial',
+          chunks: 'initial',
           minChunks: 2,
           priority: 1
         },
