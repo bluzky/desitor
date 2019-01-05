@@ -61,8 +61,8 @@ var optimization = {
           name: 'commons',
           chunks: 'all',
           chunks: 'initial',
-          minChunks: 2,
-          priority: 1
+          // minChunks: 2,
+          // priority: 1
         },
         default: false
       }
