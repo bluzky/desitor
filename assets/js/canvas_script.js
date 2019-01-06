@@ -1,5 +1,5 @@
 import paper from 'paper';
-import Tools from './tools.js';
+import Tools from './tools';
 
 import u from 'umbrellajs';
 
@@ -24,10 +24,10 @@ function bindToolbarEvent(){
 
 function activateTool(key){
   if(tools[key]){
-    tools[key].activate();
+    tools[key].tool.activate();
   }
   u('.left-toolbar .item.active').removeClass('active');
-  u('.left-toolbar .item[tool=' + key + ']').addClass('active')
+  u('.left-toolbar .item[tool=' + key + ']').addClass('active');
 }
 
 paper.view.draw();
