@@ -44,9 +44,12 @@ Selection.prototype = {
 
 function SelectedItem(item){
   this.item = item;
-  this.handles = this.buildHandle(this.item);
+  this.handles = {};
   this.saveTool = null;
   this.selectedHandle = null;
+  this.anchorPoint = null;
+  this.group = new Group();
+  this.buildHandle();
   return this;
 }
 
@@ -66,17 +69,26 @@ var cursors =  {
 };
 
 SelectedItem.prototype = {
-  buildHandle: function(item){
-    var bounds = item.strokeBounds;
+  buildHandle: function(){
+    var bounds = this.item.strokeBounds;
     var opts = settings.selection;
+    this.createRectangleBound(bounds, opts);
+    this.createScalingHandle(bounds, opts);
+    // handles.rotate = this.createRotateHandle(opts);
+  },
 
-    var handles = {};
+  createRectangleBound: function(bounds, opts){
     var rectangle = new Path.Rectangle(bounds);
     rectangle.strokeColor = opts.strokeColor;
     rectangle.strokeWidth = opts.width;
+    rectangle.dashArray = [4, 3];
     rectangle.data.type = 'handle';
-    handles.rectangle = rectangle;
+    this.group.addChild(rectangle);
+    this.handles.rectangle = rectangle;
+    return rectangle;
+  },
 
+  createScalingHandle: function(bounds, opts){
     for(var i = 0, len = handleKeys.length; i < len; i++){
       var dot = new Path.Circle(bounds[handleKeys[i]], opts.radius);
       dot.strokeColor = opts.strokeColor;
@@ -93,37 +105,22 @@ SelectedItem.prototype = {
       dot.onMouseDrag = this.onMouseDragDot.bind(this);
       dot.onMouseUp = this.onMouseUpDot.bind(this);
 
-      handles[handleKeys[i]] = dot;
-
+      this.group.addChild(dot);
+      this.handles[handleKeys[i]] = dot;
     }
-
-    var group = new Group([]);
-    for(var key in handles){
-      group.addChild(handles[key]);
-    }
-    this.group = group;
-
-    return handles;
   },
 
-  redrawHandle: function(){
-    this.remove();
-    this.handles = this.buildHandle();
+  createRotateHandle: function(opts){
+    
   },
 
   remove: function(){
-    for(var key in this.handles){
-      this.handles[key].remove();
-    }
+    this.group.remove();
   },
 
   translate: function(delta){
     this.item.translate(delta);
     this.group.translate(delta);
-  },
-
-  scale: function(hor, ver, center){
-    
   },
 
   onMouseEnterDot: function(event){
@@ -135,18 +132,10 @@ SelectedItem.prototype = {
   },
 
   onMouseDownDot: function(event){
-    this.selectedHandle = event.target;
-  },
-
-  onMouseDragDot: function(event){
-
-    if(this.selectedHandle != event.target)
-      return;
-
-    var center = null;
-    var item = event.target;
+    var item = event.target, center;
     var bounds = this.item.strokeBounds;
 
+    this.selectedHandle = item;
     switch(item.data.key){
     case 'topLeft':
     case 'topCenter':
@@ -169,73 +158,98 @@ SelectedItem.prototype = {
       break;
     }
 
+    this.anchorPoint = center;
+  },
+
+  onMouseDragDot: function(event){
+    if(this.selectedHandle != event.target)
+      return;
+
+    var item = event.target;
+
     switch(item.data.key){
     case 'topLeft':
     case 'topRight':
     case 'bottomLeft':
     case 'bottomRight':
-      this.scaleCorner(event.point, center, item);
+      this.scaleCorner(event.point, item);
       break;
 
     case 'topCenter':
     case 'bottomCenter':
-      this.scaleVertical(event.point, center, item);
+      this.scaleVertical(event.point, item);
       break;
 
     case 'leftCenter':
     case 'rightCenter':
-      this.scaleHorizontal(event.point, center, item);
+      this.scaleHorizontal(event.point, item);
       break;
     }
   },
 
 
-  scaleHorizontal: function(newPoint, center, handle){
+  scaleHorizontal: function(newPoint, handle){
     var bounds = this.item.strokeBounds;
     var scalePoint = bounds[handle.data.key];
-    var lastWidth = scalePoint.x - center.x;
-    var newWidth = newPoint.x - center.x;
+    var lastWidth = scalePoint.x - this.anchorPoint.x;
+    var newWidth = newPoint.x - this.anchorPoint.x;
     var xFactor = newWidth/lastWidth;
-    console.log(scalePoint);
 
-    if(Math.abs(newWidth - lastWidth) > 2 && xFactor != 0){
-      this.item.scale( xFactor,1, center);
-      this.scaleHandle(xFactor, 1, center);
+    if(Math.abs(newWidth - lastWidth) > 2 && newWidth != 0 && lastWidth != 0 && xFactor != 0){
+      this.item.scale( xFactor,1, this.anchorPoint);
+      this.scaleHandle(xFactor, 1, this.anchorPoint);
+
+      if(xFactor < 0)
+        this.flipHandleX();
     }
   },
 
-  scaleVertical: function(newPoint, center, handle){
+  scaleVertical: function(newPoint, handle){
     var bounds = this.item.strokeBounds;
     var scalePoint = bounds[handle.data.key];
-    var lastHeight = scalePoint.y - center.y;
-    var newHeight = newPoint.y - center.y;
+    var lastHeight = scalePoint.y - this.anchorPoint.y;
+    var newHeight = newPoint.y - this.anchorPoint.y;
     var yFactor = newHeight/lastHeight;
 
-    if(Math.abs(newHeight - lastHeight) > 2 && yFactor != 0){
-      this.item.scale( 1, yFactor, center);
-      this.scaleHandle(1, yFactor, center);
+    if(Math.abs(newHeight - lastHeight) > 2 && newHeight != 0 && yFactor != 0){
+      this.item.scale( 1, yFactor, this.anchorPoint);
+      this.scaleHandle(1, yFactor, this.anchorPoint);
+      if(yFactor < 0)
+        this.flipHandleY();
     }
   },
 
-  scaleCorner: function(newPoint, center, handle){
+  scaleCorner: function(newPoint, handle){
     var bounds = this.item.strokeBounds;
     var scalePoint = bounds[handle.data.key];
 
-    var initialWidth = scalePoint.x - center.x;
-    var initialHeight = scalePoint.y - center.y;
-    var newWidth = newPoint.x - center.x;
-    var newHeight = newPoint.y - center.y;
+    var initialWidth = scalePoint.x - this.anchorPoint.x;
+    var initialHeight = scalePoint.y - this.anchorPoint.y;
+    var newWidth = newPoint.x - this.anchorPoint.x;
+    var newHeight = newPoint.y - this.anchorPoint.y;
     var xFactor = newWidth/initialWidth;
     var yFactor = newHeight/initialHeight;
 
-    if((Math.abs(newWidth - initialWidth) >= 2 || Math.abs(newHeight - initialHeight) >= 2) && xFactor != 0 && yFactor != 0 ){
-      this.item.scale(xFactor, yFactor, center);
-      this.scaleHandle(xFactor, yFactor, center);
+    if((Math.abs(newWidth - initialWidth) >= 2
+        || Math.abs(newHeight - initialHeight) >= 2
+       )
+       && newWidth != 0
+       && newHeight != 0
+       && xFactor != 0
+       && yFactor != 0
+      ){
+      this.item.scale(xFactor, yFactor, this.anchorPoint);
+      this.scaleHandle(xFactor, yFactor, this.anchorPoint);
+      if(xFactor < 0)
+        this.flipHandleX();
+
+      if(yFactor < 0)
+        this.flipHandleY();
     }
   },
 
-  scaleHandle: function(xFactor, yFactor, center){
-    this.handles.rectangle.scale(xFactor, yFactor, center);
+  scaleHandle: function(xFactor, yFactor){
+    this.handles.rectangle.scale(xFactor, yFactor, this.anchorPoint);
     var bounds = this.item.strokeBounds;
 
     for(var i = 0, len = handleKeys.length; i < len; i++){
@@ -247,8 +261,30 @@ SelectedItem.prototype = {
     }
   },
 
+  flipHandleX: function(){
+    this.swapHandle('topLeft', 'topRight');
+    this.swapHandle('bottomLeft', 'bottomRight');
+    this.swapHandle('leftCenter', 'rightCenter');
+  },
+
+  flipHandleY: function(){
+    this.swapHandle('topLeft', 'bottomLeft');
+    this.swapHandle('topRight', 'bottomRight');
+    this.swapHandle('topCenter', 'bottomCenter');
+  },
+
+  swapHandle: function(keyA, keyB){
+    var tmp = this.handles[keyA];
+    this.handles[keyA] = this.handles[keyB];
+    this.handles[keyB] = tmp;
+    this.handles[keyA].data.key = keyA;
+    this.handles[keyB].data.key = keyB;
+
+  },
+
   onMouseUpDot: function(event){
     this.selectedHandle = null;
+    this.anchorPoint = null;
   },
 
   onMouseEnterRect: function(event){

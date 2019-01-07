@@ -1,4 +1,5 @@
 import paper from 'paper';
+import Selection from '../selection.js';
 
 function CircleTool(){
   this.tool = new Tool();
@@ -17,7 +18,18 @@ CircleTool.prototype = {
   },
 
   onMouseDown: function(event){
+    var hitOptions = {
+		  segments: true,
+		  stroke: true,
+		  fill: true,
+		  tolerance: 5
+	  };
+    var hitResult = paper.project.hitTest(event.point, hitOptions);
+
+    if(!(hitResult && hitResult.item.data.type == 'handle')){
     this.startPoint = event.point;
+      Selection.selectionManager.removeAll();
+    }
   },
 
   onMouseDrag: function(event){
@@ -41,21 +53,20 @@ CircleTool.prototype = {
         this.lastPoint = point;
       }
     }
-    else if(event.point.x != this.startPoint.x && event.point.y != this.startPoint.y){
+    else if(this.startPoint && event.point.x != this.startPoint.x && event.point.y != this.startPoint.y){
       var shape = new Path.Ellipse(new Rectangle(this.startPoint, point));
       shape.strokeColor = 'rebeccaPurple';
       shape.strokeWidth = 1;
       shape.fillColor = 'orange';
       this.currentItem = shape;
-      this.currentItem.selected = true;
       this.lastPoint = point;
     }
   },
 
   onMouseUp: function(event){
-    paper.project.deselectAll();
+    this.startPoint = null;
     if(this.currentItem){
-      this.currentItem.selected = true;
+      Selection.selectionManager.addItem(this.currentItem);
       this.currentItem = null;
     }
   }
