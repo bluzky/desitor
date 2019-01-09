@@ -50,6 +50,7 @@ function SelectedItem(item){
   this.anchorPoint = null;
   this.group = new Group();
   this.buildHandle();
+  this.lastPoint = null;
   return this;
 }
 
@@ -58,8 +59,9 @@ var settings = {
   selection:{
     radius: 4,
     width: 1,
-    strokeColor: new paper.Color('green'),
-    fillColor: new paper.Color('white')
+    strokeColor: new paper.Color('blue'),
+    fillColor: new paper.Color('white'),
+    rotationHandleColor: new paper.Color('orange')
   }
 };
 
@@ -74,7 +76,7 @@ SelectedItem.prototype = {
     var opts = settings.selection;
     this.createRectangleBound(bounds, opts);
     this.createScalingHandle(bounds, opts);
-    // handles.rotate = this.createRotateHandle(opts);
+    this.createRotationHandle(bounds, opts);
   },
 
   createRectangleBound: function(bounds, opts){
@@ -110,8 +112,28 @@ SelectedItem.prototype = {
     }
   },
 
-  createRotateHandle: function(opts){
-    
+  createRotationHandle: function(bounds, opts){
+    var position = bounds.topLeft;
+    position.y = position.y - 15;
+    position.x = (position.x + bounds.topRight.x) / 2;
+
+    var dot = new Path.Circle(position, opts.radius);
+    dot.fillColor = opts.rotationHandleColor;
+    dot.strokeColor = opts.rotationHandleColor;
+    dot.strokeWidth = opts.width;
+    dot.data = {
+      type: 'handle',
+      key: 'rotation'
+    };
+
+    dot.onMouseEnter = this.onMouseEnterRotation.bind(this);
+    dot.onMouseLeave = this.onMouseLeaveRotation.bind(this);
+    dot.onMouseDown = this.onMouseDownRotation.bind(this);
+    dot.onMouseDrag = this.onMouseDragRotation.bind(this);
+    dot.onMouseUp = this.onMouseUpRotation.bind(this);
+
+    this.group.addChild(dot);
+    this.handles.rotation = dot;
   },
 
   remove: function(){
@@ -293,6 +315,38 @@ SelectedItem.prototype = {
 
   onMouseLeaveRect: function(event){
     document.body.style.cursor = 'default';
+  },
+
+  onMouseEnterRotation: function(event){
+    document.body.style.cursor = 'all-scroll';
+  },
+
+  onMouseLeaveRotation: function(event){
+    document.body.style.cursor = 'default';
+  },
+
+  onMouseDownRotation: function(event){
+    this.item.applyMatrix = false;
+    this.item.pivot = this.item.strokeBounds.center;
+    // this.lastPoint = this.item.globalToLocal(event.point);
+    // this.lastPoint = event.point;
+  },
+
+  onMouseUpRotation: function(event){
+    // this.lastPoint = null;
+  },
+
+  onMouseDragRotation: function(event){
+    // var point = this.item.globalToLocal(event.point);
+    // var point = event.point;
+    var delta = event.point.subtract(this.item.pivot);
+    this.item.rotation = delta.angle + 90;
+    // var angle = point.getDirectedAngle(this.lastPoint);
+    // console.log(angle);
+    // if(angle != 0){
+    //   this.lastPoint = point;
+    //   this.item.rotate(angle);
+    // }
   }
 };
 
