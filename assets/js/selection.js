@@ -44,11 +44,18 @@ Selection.prototype = {
 
 function SelectedItem(item){
   this.item = item;
+  this.itemRotation = item.data.rotation || 0;
+  this.item.rotation = -this.itemRotation;
+  this.zeroBounds = this.item.strokeBounds.clone();
+  this.item.rotation = this.itemRotation;
+
   this.handles = {};
   this.saveTool = null;
   this.selectedHandle = null;
   this.anchorPoint = null;
   this.group = new Group();
+
+  this.group.pivot = this.item.pivot = this.item.strokeBounds.center;
   this.buildHandle();
   this.lastPoint = null;
   return this;
@@ -72,11 +79,14 @@ var cursors =  {
 
 SelectedItem.prototype = {
   buildHandle: function(){
-    var bounds = this.item.strokeBounds;
+    var bounds = this.zeroBounds.clone();
     var opts = settings.selection;
     this.createRectangleBound(bounds, opts);
     this.createScalingHandle(bounds, opts);
     this.createRotationHandle(bounds, opts);
+    this.group.pivot = bounds.center;
+    this.item.pivot = bounds.center;
+    this.group.rotation = this.itemRotation;
   },
 
   createRectangleBound: function(bounds, opts){
@@ -113,7 +123,7 @@ SelectedItem.prototype = {
   },
 
   createRotationHandle: function(bounds, opts){
-    var position = bounds.topLeft;
+    var position = bounds.topLeft.clone();
     position.y = position.y - 15;
     position.x = (position.x + bounds.topRight.x) / 2;
 
@@ -129,8 +139,8 @@ SelectedItem.prototype = {
     dot.onMouseEnter = this.onMouseEnterRotation.bind(this);
     dot.onMouseLeave = this.onMouseLeaveRotation.bind(this);
     dot.onMouseDown = this.onMouseDownRotation.bind(this);
-    dot.onMouseDrag = this.onMouseDragRotation.bind(this);
     dot.onMouseUp = this.onMouseUpRotation.bind(this);
+    dot.onMouseDrag = this.onMouseDragRotation.bind(this);
 
     this.group.addChild(dot);
     this.handles.rotation = dot;
@@ -326,31 +336,33 @@ SelectedItem.prototype = {
   },
 
   onMouseDownRotation: function(event){
-    this.item.applyMatrix = false;
-    this.item.pivot = this.item.strokeBounds.center;
-    // this.lastPoint = this.item.globalToLocal(event.point);
-    // this.lastPoint = event.point;
+    this.lastPoint = event.point;
   },
 
   onMouseUpRotation: function(event){
-    // this.lastPoint = null;
+    this.lastPoint = null;
+    this.item.data.rotation = this.itemRotation % 360;
   },
 
   onMouseDragRotation: function(event){
-    // var point = this.item.globalToLocal(event.point);
-    // var point = event.point;
-    var delta = event.point.subtract(this.item.pivot);
-    this.item.rotation = delta.angle + 90;
-    // var angle = point.getDirectedAngle(this.lastPoint);
-    // console.log(angle);
-    // if(angle != 0){
-    //   this.lastPoint = point;
-    //   this.item.rotate(angle);
-    // }
+    var lastAngle = this.lastPoint.subtract(this.item.pivot).angle;
+    var newAngle = event.point.subtract(this.item.pivot).angle;
+    var angle = newAngle - lastAngle;
+    this.group.rotate(angle, this.group.pivot);
+    this.item.rotate(angle, this.group.pivot);
+    this.itemRotation += angle;
+    this.lastPoint = event.point;
   }
 };
 
+function rotateRectangle(rect, angle, center){
+  var topLeft = rect.topLeft.clone().rotate(angle, center);
+  var bottomRight = rect.bottomRight.clone().rotate(angle, center);
+  return new Rectangle(topLeft, bottomRight);
+}
+
 var selectionManager = new Selection();
+window.manager = selectionManager;
 
 export default {
   selectionManager,
