@@ -6,6 +6,15 @@ function Selection(){
 }
 
 Selection.prototype = {
+  isSelected: function(item){
+    for(var i = 0, len = this.selectedItems.length; i < len; i++){
+      if(this.selectedItems[i].item == item)
+        return true;
+    }
+
+    return false;
+  },
+
   addItem: function(item){
     this.selectedItems.push(new SelectedItem(item));
   },
@@ -55,7 +64,7 @@ function SelectedItem(item){
   this.anchorPoint = null;
   this.group = new Group();
 
-  this.group.pivot = this.item.pivot = this.item.strokeBounds.center;
+  this.pivot = this.item.strokeBounds.center.clone();
   this.buildHandle();
   this.lastPoint = null;
   return this;
@@ -84,9 +93,7 @@ SelectedItem.prototype = {
     this.createRectangleBound(bounds, opts);
     this.createScalingHandle(bounds, opts);
     this.createRotationHandle(bounds, opts);
-    this.group.pivot = bounds.center;
-    this.item.pivot = bounds.center;
-    this.group.rotation = this.itemRotation;
+    this.group.rotate(this.itemRotation, this.pivot);
   },
 
   createRectangleBound: function(bounds, opts){
@@ -165,7 +172,7 @@ SelectedItem.prototype = {
 
   onMouseDownDot: function(event){
     var item = event.target, center;
-    var bounds = this.item.strokeBounds;
+    var bounds = this.getZeroBounds();
 
     this.selectedHandle = item;
     switch(item.data.key){
@@ -190,33 +197,47 @@ SelectedItem.prototype = {
       break;
     }
 
-    this.anchorPoint = center;
+    this.anchorPoint = center.clone();
+    this.pivot =  this.item.strokeBounds.center.clone();
+  },
+
+  getZeroBounds: function(){
+    this.item.rotation = - this.itemRotation;
+    var bounds = this.item.strokeBounds.clone();
+    this.item.rotation = this.itemRotation;
+    return bounds;
   },
 
   onMouseDragDot: function(event){
     if(this.selectedHandle != event.target)
       return;
 
-    var item = event.target;
+    var handle = event.target;
+    var point = event.point.clone().rotate(-this.itemRotation, this.pivot);
+    this.item.rotate(-this.itemRotation, this.pivot);
+    this.group.rotate(-this.itemRotation, this.pivot);
 
-    switch(item.data.key){
+    switch(handle.data.key){
     case 'topLeft':
     case 'topRight':
     case 'bottomLeft':
     case 'bottomRight':
-      this.scaleCorner(event.point, item);
+      this.scaleCorner(point, handle);
       break;
 
     case 'topCenter':
     case 'bottomCenter':
-      this.scaleVertical(event.point, item);
+      this.scaleVertical(point, handle);
       break;
 
     case 'leftCenter':
     case 'rightCenter':
-      this.scaleHorizontal(event.point, item);
+      this.scaleHorizontal(point, handle);
       break;
     }
+
+    this.item.rotate(this.itemRotation, this.pivot);
+    this.group.rotate(this.itemRotation, this.pivot);
   },
 
 
@@ -281,9 +302,18 @@ SelectedItem.prototype = {
   },
 
   scaleHandle: function(xFactor, yFactor){
-    this.handles.rectangle.scale(xFactor, yFactor, this.anchorPoint);
     var bounds = this.item.strokeBounds;
 
+    // rectangle
+    this.handles.rectangle.scale(xFactor, yFactor, this.anchorPoint);
+
+    // rotation dot
+    var position = bounds.topLeft.clone();
+    position.y = position.y - 15;
+    position.x = (position.x + bounds.topRight.x) / 2;
+    this.handles.rotation.translate(position.subtract(this.handles.rotation.bounds.center));
+
+    // scaling dot
     for(var i = 0, len = handleKeys.length; i < len; i++){
       var key = handleKeys[i];
       var dot = this.handles[key];
@@ -337,6 +367,7 @@ SelectedItem.prototype = {
 
   onMouseDownRotation: function(event){
     this.lastPoint = event.point;
+    this.pivot =  this.item.strokeBounds.center.clone();
   },
 
   onMouseUpRotation: function(event){
@@ -345,14 +376,32 @@ SelectedItem.prototype = {
   },
 
   onMouseDragRotation: function(event){
-    var lastAngle = this.lastPoint.subtract(this.item.pivot).angle;
-    var newAngle = event.point.subtract(this.item.pivot).angle;
+    var lastAngle = this.lastPoint.subtract(this.pivot).angle;
+    var newAngle = event.point.subtract(this.pivot).angle;
     var angle = newAngle - lastAngle;
-    this.group.rotate(angle, this.group.pivot);
-    this.item.rotate(angle, this.group.pivot);
+    this.group.rotate(angle, this.pivot);
+    this.item.rotate(angle, this.pivot);
     this.itemRotation += angle;
     this.lastPoint = event.point;
+  },
+
+  debug: function(item, color){
+    switch(item.className){
+    case 'Point':
+      var p = new Path.Circle(item, 5);
+      p.fillColor = color;
+      break;
+    case 'Rectangle':
+      var p = new Path.Rectangle(item);
+      p.strokeColor = color;
+      p.strokeWidth = 1;
+      break;
+    default:
+      break;
+    }
+
   }
+
 };
 
 function rotateRectangle(rect, angle, center){
